@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-app
+  labels:
+    app: admin-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: admin-app
+  template:
+    metadata:
+      labels:
+        app: admin-app
+    spec:
+      containers:
+      - name: admin-app
+        image: ghcr.io/your-username/your-repo/admin:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-app-service
+spec:
+  selector:
+    app: admin-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3001
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: admin-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # 관리자 페이지는 IP 제한이나 인증 추가 가능
+    # nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+spec:
+  tls:
+  - hosts:
+    - admin.example.com
+    secretName: admin-app-tls
+  rules:
+  - host: admin.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-app-service
+            port:
+              number: 80

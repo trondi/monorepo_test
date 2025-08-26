@@ -1,0 +1,11 @@
+
+
+> web@0.1.0 build
+> next build
+
+You are using Node.js 18.17.1. For Next.js, Node.js version "^18.18.0 || ^19.8.0 || >= 20.0.0" is required.
+[37;40mnpm[0m [0m[31;40mERR![0m [0m[35mLifecycle script `build` failed with error:[0m 
+[0m[37;40mnpm[0m [0m[31;40mERR![0m [0m[35mError: command failed[0m 
+[0m[37;40mnpm[0m [0m[31;40mERR![0m [0m[35m  in workspace: web@0.1.0[0m 
+[0m[37;40mnpm[0m [0m[31;40mERR![0m [0m[35m  at location: /Users/trond/Documents/projects/monorepo-turborepo/monorepo/apps/web[0m 
+[0m

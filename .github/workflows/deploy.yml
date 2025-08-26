@@ -1,0 +1,103 @@
+name: Deploy
+
+on:
+  push:
+    branches: ["main", "master"]
+
+env:
+  REGISTRY: ghcr.io
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.changes.outputs.web }}
+      admin: ${{ steps.changes.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/**'
+            admin:
+              - 'apps/admin/**'
+              - 'packages/**'
+
+  deploy-web:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build web app
+        run: npm run build --filter=web
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-admin:
+    needs: changes
+    if: ${{ needs.changes.outputs.admin == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build admin app
+        run: npm run build --filter=admin
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/admin/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
